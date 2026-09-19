@@ -54,9 +54,10 @@ class Boot
                 // Récupération de l'ID courant passé dans l'URL par le routeur
                 $idItem = (int)($_GET['id'] ?? 0);
 
-                // Si pas d'ID, on est sur une liste de news. On n'intervient pas.
+                // CORRECTION : Si pas d'ID, on est sur la liste des news (index).
+                // Il n'y a pas de formulaire d'inscription ici, donc on BLOQUE reCAPTCHA.
                 if ($idItem <= 0) {
-                    return true;
+                    return false;
                 }
 
                 // On vérifie en base si cet événement précis nécessite le formulaire
@@ -68,7 +69,7 @@ class Boot
                     return false;
                 }
 
-                // Tout est ok, le formulaire va s'afficher, on autorise reCAPTCHA
+                // Tout est ok, l'ID existe, le formulaire va s'afficher, on autorise reCAPTCHA
                 return true;
             });
         }
