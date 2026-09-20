@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Plugins\EventRegistration\src;
+namespace Plugins\Eventregistration\src;
 
 use App\Frontend\Controller\BaseController;
-use Plugins\EventRegistration\db\EventFrontDb;
+use Plugins\Eventregistration\db\EventFrontDb;
 use Magepattern\Component\Tool\FormTool;
 use Magepattern\Component\Tool\MailTool;
 use Magepattern\Component\Tool\SmartyTool;
@@ -15,9 +15,6 @@ use App\Component\Routing\UrlTool;
 
 class FrontendController extends BaseController
 {
-    // =================================================================
-    // 1. LE MOTEUR DE HOOKS (Injection dans le template single.tpl)
-    // =================================================================
     public static function renderForm(array $params = []): string
     {
         $idNews = (int)($params['id_news'] ?? 0);
@@ -30,7 +27,7 @@ class FrontendController extends BaseController
             $config = $db->getEventConfig($idNews);
 
             if (empty($config) || (int)$config['registration_enabled'] !== 1) {
-                return ''; // Les inscriptions sont désactivées
+                return '';
             }
 
             $maxParticipants = (int)$config['max_participants'];
@@ -38,7 +35,7 @@ class FrontendController extends BaseController
 
             $isFull = ($maxParticipants > 0 && $currentRegistrations >= $maxParticipants);
 
-            $template = ROOT_DIR . 'plugins' . DS . 'EventRegistration' . DS . 'views' . DS . 'front' . DS . 'form.tpl';
+            $template = ROOT_DIR . 'plugins' . DS . 'Eventregistration' . DS . 'views' . DS . 'front' . DS . 'form.tpl';
 
             if (!file_exists($template)) return '';
 
@@ -53,46 +50,62 @@ class FrontendController extends BaseController
         }
     }
 
-    // =================================================================
-    // 2. LE CONTRÔLEUR CLASSIQUE (Traitement de l'AJAX MagixFrontForms)
-    // =================================================================
     public function run(): void
     {
-        // On déclare le dossier de vues pour que MailTool trouve le message.tpl du plugin
-        SmartyTool::addTemplateDir('front', ROOT_DIR . 'plugins' . DS . 'EventRegistration' . DS . 'views' . DS . 'front');
+        SmartyTool::addTemplateDir('front', ROOT_DIR . 'plugins' . DS . 'Eventregistration' . DS . 'views' . DS . 'front');
 
-        $action = $_GET['action'] ?? '';
+        $confFile = ROOT_DIR . 'plugins' . DS . 'Eventregistration' . DS . 'i18n' . DS . 'fr.conf';
+        if (file_exists($confFile)) {
+            $this->view->configLoad($confFile);
+        }
 
-        if ($action === 'registerFrontend' && Request::isMethod('POST')) {
+        // On passe l'action en minuscules pour éviter les erreurs de frappe/casse
+        $action = strtolower($_GET['action'] ?? '');
+
+        // On compare avec la chaîne tout en minuscules
+        if ($action === 'registerfrontend' && Request::isMethod('POST')) {
             $this->processRegistration();
             return;
         }
 
-        $this->render404();
+        // Si l'action est mauvaise, on renvoie une erreur JSON propre plutôt qu'une page 404 HTML
+        $this->jsonResponse(false, 'Erreur de routage : Action non reconnue.');
+    }
+
+    /**
+     * Méthode sécurisée pour récupérer une traduction avec un fallback obligatoire.
+     */
+    private function getTrans(string $key, string $default): string
+    {
+        $view = SmartyTool::getInstance('front');
+        $confFile = ROOT_DIR . 'plugins' . DS . 'Eventregistration' . DS . 'i18n' . DS . 'fr.conf';
+
+        if (file_exists($confFile)) {
+            $view->configLoad($confFile);
+        }
+
+        $val = $view->getConfigVars($key);
+        return !empty($val) ? (string)$val : $default;
     }
 
     private function processRegistration(): void
     {
-        // Nettoyage de la mémoire tampon pour éviter que du HTML ne pollue le JSON
         if (ob_get_length()) ob_clean();
 
-        // 1. Nettoyage et récupération des données POST
         $firstname = FormTool::simpleClean($_POST['firstname'] ?? '');
         $lastname  = FormTool::simpleClean($_POST['lastname'] ?? '');
         $email     = FormTool::simpleClean($_POST['email'] ?? '');
         $phone     = FormTool::simpleClean($_POST['phone'] ?? '');
         $idNews    = (int)($_POST['id_news'] ?? 0);
 
-        // 2. Vérification des champs obligatoires
         if (empty($firstname) || empty($lastname) || empty($email)) {
-            $this->jsonResponse(false, 'Veuillez remplir tous les champs obligatoires.');
+            $this->jsonResponse(false, $this->getTrans('event_error_empty_fields', 'Veuillez remplir tous les champs obligatoires.'));
         }
 
         if (!StringTool::isMail($email)) {
-            $this->jsonResponse(false, 'L\'adresse e-mail fournie est invalide.');
+            $this->jsonResponse(false, $this->getTrans('event_error_invalid_email', 'Adresse e-mail invalide.'));
         }
 
-        // 3. Intégration stricte du Google reCAPTCHA
         $isHuman = true;
         if (class_exists('\Plugins\GoogleRecaptcha\src\FrontendController')) {
             $recaptcha = new \Plugins\GoogleRecaptcha\src\FrontendController();
@@ -100,29 +113,31 @@ class FrontendController extends BaseController
         }
 
         if (!$isHuman) {
-            $this->jsonResponse(false, 'Erreur de sécurité : Validation reCAPTCHA échouée. Veuillez réessayer.');
+            $this->jsonResponse(false, $this->getTrans('event_error_recaptcha_failed', 'Erreur de sécurité : reCAPTCHA échoué.'));
         }
 
         if ($idNews <= 0) {
-            $this->jsonResponse(false, 'Erreur technique : Évènement introuvable.');
+            $this->jsonResponse(false, $this->getTrans('event_error_not_found', 'Évènement introuvable.'));
         }
 
-        // 4. Vérification de la disponibilité (Sécurité côté serveur)
         $db = new EventFrontDb();
         $config = $db->getEventConfig($idNews);
 
         if (empty($config) || (int)$config['registration_enabled'] !== 1) {
-            $this->jsonResponse(false, 'Les inscriptions sont fermées pour cet évènement.');
+            $this->jsonResponse(false, $this->getTrans('event_error_closed', 'Inscriptions fermées.'));
         }
 
         if ((int)$config['max_participants'] > 0) {
             $currentCount = $db->countRegistrations($idNews);
             if ($currentCount >= (int)$config['max_participants']) {
-                $this->jsonResponse(false, 'Désolé, cet évènement est désormais complet.');
+                $this->jsonResponse(false, $this->getTrans('event_error_full', 'Cet évènement est complet.'));
             }
         }
 
-        // 5. Enregistrement en Base de données
+        if ($db->hasAlreadyRegistered($idNews, $email)) {
+            $this->jsonResponse(false, $this->getTrans('event_error_already_registered', 'Cette adresse e-mail est déjà inscrite.'));
+        }
+
         $insertData = [
             'id_news'   => $idNews,
             'firstname' => $firstname,
@@ -132,20 +147,16 @@ class FrontendController extends BaseController
         ];
 
         if (!$db->insertRegistration($insertData)) {
-            $this->jsonResponse(false, 'Une erreur technique est survenue lors de l\'enregistrement.');
+            $this->jsonResponse(false, $this->getTrans('event_error_technical', 'Erreur technique lors de l\'enregistrement.'));
         }
 
-        // CONSTRUCTION DE L'URL ABSOLUE (CORRIGÉE)
         $idLang  = (int)($this->currentLang['id_lang'] ?? 1);
         $isoLang = strtolower($this->currentLang['iso_lang'] ?? 'fr');
         $newsInfo = $db->getNewsInfo($idNews, $idLang);
 
         $urlTool = new UrlTool();
-
-        // On récupère la date de publication (ou la date de l'évènement à défaut)
         $dateNews = !empty($newsInfo['date_publish']) ? $newsInfo['date_publish'] : ($newsInfo['date_event_start'] ?? '');
 
-        // Utilisation native du UrlTool de Magix CMS pour les news
         $relativeUrl = $urlTool->buildUrl([
             'type' => 'news',
             'id'   => $idNews,
@@ -154,10 +165,7 @@ class FrontendController extends BaseController
             'iso'  => $isoLang
         ]);
 
-        // On récupère l'URL de base du site (ex: https://magixcms.test)
         $siteUrl = rtrim((string)$this->view->getTemplateVars('site_url'), '/');
-
-        // Assemblage final : https://magixcms.test/fr/news/2026-04-20/9-test/
         $absoluteUrl = $siteUrl . $relativeUrl;
 
         $emailData = array_merge($insertData, [
@@ -167,23 +175,18 @@ class FrontendController extends BaseController
 
         $this->sendNotificationEmails($emailData);
 
-        // 7. Calcul des places restantes après cette inscription
         $remaining = 'illimité';
         if ((int)$config['max_participants'] > 0) {
             $newCount = $db->countRegistrations($idNews);
             $remaining = max(0, (int)$config['max_participants'] - $newCount);
         }
 
-        // 8. Succès ! Retour au Javascript avec le compteur à jour
-        $this->jsonResponse(true, 'Votre inscription a bien été confirmée !', [
+        $this->jsonResponse(true, $this->getTrans('event_success_registered', 'Votre inscription a bien été confirmée !'), [
             'type'      => 'success',
             'remaining' => $remaining
         ]);
     }
 
-    /**
-     * Gère l'envoi des e-mails en utilisant le MailTool de Magix CMS
-     */
     private function sendNotificationEmails(array $data): void
     {
         $isSmtp = isset($this->siteSettings['smtp_enabled']['value']) && $this->siteSettings['smtp_enabled']['value'] == '1';
@@ -202,22 +205,23 @@ class FrontendController extends BaseController
 
         if (empty($siteEmail)) return;
 
-        // --- MAIL 1 : Notification à l'Administrateur (Mode Tableau) ---
+        // Configuration pour ne pas être bloqué par le SMTP (DMARC/SPF)
+        $senderEmail = $siteEmail;
+
+        // --- MAIL 1 : Notification à l'Administrateur ---
+        $fromHeaderAdmin = '"' . $data['firstname'] . ' ' . $data['lastname'] . '" <' . $senderEmail . '>';
+
         $msgAdmin = [
-            'title'   => 'Nouvelle inscription !',
-            'intro'   => 'Une nouvelle personne vient de s\'inscrire à un évènement depuis le site web.',
-
-            'subject' => 'Nouvelle inscription : ' . $data['news_name'],
-
+            'title'   => $this->getTrans('event_email_admin_title', 'Nouvelle inscription !'),
+            'intro'   => $this->getTrans('event_email_admin_intro', 'Une nouvelle personne vient de s\'inscrire.'),
+            'subject' => $this->getTrans('event_email_admin_subject', 'Nouvelle inscription') . ' : ' . $data['news_name'],
             'details' => [
-                'Évènement'          => $data['news_name'],
-
-                'Lien vers la page'  => !empty($data['news_url']) ? $data['news_url'] : 'Non disponible',
-
-                'Prénom'             => $data['firstname'],
-                'Nom'                => $data['lastname'],
-                'E-mail'             => $data['email'],
-                'Téléphone'          => !empty($data['phone']) ? $data['phone'] : 'Non renseigné'
+                $this->getTrans('event_email_label_event', 'Évènement') => $data['news_name'],
+                $this->getTrans('event_email_label_link', 'Lien')       => !empty($data['news_url']) ? $data['news_url'] : 'N/A',
+                $this->getTrans('event_email_label_fname', 'Prénom')    => $data['firstname'],
+                $this->getTrans('event_email_label_lname', 'Nom')       => $data['lastname'],
+                $this->getTrans('event_email_label_email', 'Email')     => $data['email'],
+                $this->getTrans('event_email_label_phone', 'Téléphone') => !empty($data['phone']) ? $data['phone'] : 'N/A'
             ]
         ];
 
@@ -225,24 +229,32 @@ class FrontendController extends BaseController
             'front',
             'emails/message.tpl',
             $msgAdmin,
-            "Nouvelle inscription à l'évènement",
-            $data['email'],
-            [$siteEmail => 'Administration']
+            $msgAdmin['subject'],
+            $fromHeaderAdmin,
+            [$siteEmail => 'Administration'],
+            [],
+            $data['email'] // On met l'email du visiteur en Reply-To pour lui répondre facilement
         );
 
-        // --- MAIL 2 : Confirmation au Visiteur (Mode Texte) ---
+        // --- MAIL 2 : Confirmation au Visiteur ---
+        $contentTpl = $this->getTrans('event_email_user_content', 'Bonjour %s, <br><br>Votre inscription est confirmée.');
+        // On évite un crash si le fichier de langue a oublié le %s
+        $content = str_contains($contentTpl, '%s') ? sprintf($contentTpl, $data['firstname']) : $contentTpl;
+
         $msgUser = [
-            'title'   => 'Confirmation d\'inscription',
-            'subject' => 'Votre participation est confirmée',
-            'content' => nl2br("Bonjour {$data['firstname']},\n\nNous vous confirmons que votre inscription à l'évènement a bien été prise en compte.\n\nMerci de votre confiance et à très vite !")
+            'title'   => $this->getTrans('event_email_user_title', 'Confirmation d\'inscription'),
+            'subject' => $this->getTrans('event_email_user_subject', 'Votre participation est confirmée'),
+            'content' => nl2br($content)
         ];
+
+        $fromHeaderUser = '"Service Web" <' . $senderEmail . '>';
 
         $mailer->sendTemplate(
             'front',
             'emails/message.tpl',
             $msgUser,
-            "Confirmation de votre inscription",
-            $siteEmail,
+            $msgUser['subject'],
+            $fromHeaderUser,
             [$data['email'] => $data['firstname'] . ' ' . $data['lastname']]
         );
     }

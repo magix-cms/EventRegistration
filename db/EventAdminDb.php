@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Plugins\EventRegistration\db;
+namespace Plugins\Eventregistration\db;
 
 use App\Backend\Db\BaseDb;
 use Magepattern\Component\Database\QueryBuilder;

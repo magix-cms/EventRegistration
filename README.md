@@ -1,19 +1,19 @@
-# EventRegistration
+# Eventregistration
 
 [![Release](https://img.shields.io/github/release/magix-cms/event-registration.svg)](https://github.com/magix-cms/event-registration/releases/latest)
 [![License](https://img.shields.io/github/license/magix-cms/event-registration.svg)](LICENSE)
 [![PHP Version](https://img.shields.io/badge/php-%3E%3D%208.2-blue.svg)](https://php.net/)
 [![Magix CMS](https://img.shields.io/badge/Magix%20CMS-4.x-success.svg)](https://www.magix-cms.com/)
 
-**EventRegistration** est une extension pour **Magix CMS 4** qui transforme le module d'actualités (*News*) en un système de gestion d'événements avec formulaire d'inscription en ligne. Il permet de définir un quota de participants, de vérifier les disponibilités en temps réel et de notifier instantanément l'administrateur et le visiteur.
+**Eventregistration** est une extension pour **Magix CMS 4** qui transforme le module d'actualités (*News*) en un système de gestion d'événements avec formulaire d'inscription en ligne. Il permet de définir un quota de participants, de vérifier les disponibilités en temps réel et de notifier instantanément l'administrateur et le visiteur.
 
 ## 🚀 Installation
 
 1. Téléchargez et décompressez l'archive du plugin.
-2. Placez le dossier `EventRegistration` dans le répertoire `plugins/` de votre installation Magix CMS.
+2. Placez le dossier `Eventregistration` dans le répertoire `plugins/` de votre installation Magix CMS.
 3. Connectez-vous à l'administration de votre site.
 4. Rendez-vous dans **Extensions** > **Gestionnaire**.
-5. Cliquez sur le bouton d'installation pour **EventRegistration**.
+5. Cliquez sur le bouton d'installation pour **Eventregistration**.
 
 ## 🛠 Configuration & Utilisation
 

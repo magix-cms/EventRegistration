@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-namespace Plugins\EventRegistration\db;
+namespace Plugins\Eventregistration\db;
 
 use App\Frontend\Db\BaseDb;
 use Magepattern\Component\Database\QueryBuilder;
@@ -38,8 +38,26 @@ class EventFrontDb extends BaseDb
     }
 
     /**
+     * Vérifie si une adresse e-mail est déjà inscrite à un évènement spécifique.
+     * Permet d'éviter les doublons.
+     */
+    public function hasAlreadyRegistered(int $idNews, string $email): bool
+    {
+        $qb = new QueryBuilder();
+        $qb->select(['id_registration'])
+            ->from('mc_news_registration')
+            ->where('id_news = :id AND email = :email', [
+                'id'    => $idNews,
+                'email' => $email
+            ]);
+
+        $res = $this->executeRow($qb);
+
+        return !empty($res);
+    }
+
+    /**
      * Insère une nouvelle inscription depuis le formulaire public
-     * (Nous l'utiliserons dans la prochaine étape)
      */
     public function insertRegistration(array $data): bool
     {
@@ -47,9 +65,7 @@ class EventFrontDb extends BaseDb
         $qb->insert('mc_news_registration', $data);
         return $this->executeInsert($qb);
     }
-    /**
-     * Récupère le nom et l'URL publique de l'actualité pour les e-mails
-     */
+
     /**
      * Récupère le nom, le slug et la date de l'actualité pour générer l'URL
      */

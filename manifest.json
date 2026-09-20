@@ -1,6 +1,6 @@
 {
-  "name": "EventRegistration",
-  "version": "1.0.0",
+  "name": "Eventregistration",
+  "version": "1.0.1",
   "description": "Ajoute une inscription pour les évènements",
   "author": "Gerits Aurelien (Magix CMS)",
   "type": "widget",

@@ -1,10 +1,10 @@
 <?php
 declare(strict_types=1);
 
-namespace Plugins\EventRegistration\src;
+namespace Plugins\Eventregistration\src;
 
 use App\Backend\Controller\BaseController;
-use Plugins\EventRegistration\db\EventAdminDb;
+use Plugins\Eventregistration\db\EventAdminDb;
 use Magepattern\Component\HTTP\Request;
 use Magepattern\Component\Tool\SmartyTool;
 
@@ -12,7 +12,7 @@ class BackendController extends BaseController
 {
     public function run(): void
     {
-        SmartyTool::addTemplateDir('eventregistration', ROOT_DIR . 'plugins' . DS . 'EventRegistration' . DS . 'views' . DS . 'admin');
+        SmartyTool::addTemplateDir('Eventregistration', ROOT_DIR . 'plugins' . DS . 'Eventregistration' . DS . 'views' . DS . 'admin');
 
         $action = $_GET['action'] ?? null;
 
@@ -93,13 +93,16 @@ class BackendController extends BaseController
     /**
      * Supprime un participant
      */
+    /**
+     * Supprime un participant
+     */
     public function delete(): void
     {
         if (ob_get_length()) ob_clean();
 
         $token = Request::isPost('hashtoken') ? $_POST['hashtoken'] : '';
         if (!$this->session->validateToken($token)) {
-            $this->jsonResponse(false, 'Session expirée.');
+            $this->jsonResponse(false, 'Session expirée. Veuillez rafraichir la page.');
         }
 
         $idRegistration = (int)($_POST['id_registration'] ?? 0);
@@ -107,7 +110,10 @@ class BackendController extends BaseController
         if ($idRegistration > 0) {
             $db = new EventAdminDb();
             if ($db->deleteRegistration($idRegistration)) {
-                $this->jsonResponse(true, 'Inscription supprimée avec succès.');
+                // SOLUTION : On renvoie un nouveau token valide pour le prochain clic de suppression !
+                $this->jsonResponse(true, 'Inscription supprimée avec succès.', [
+                    'hashtoken' => $this->session->getToken()
+                ]);
             }
         }
         $this->jsonResponse(false, 'Impossible de supprimer cette inscription.');

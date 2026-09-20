@@ -66,7 +66,7 @@
             const form = document.getElementById('eventreg_config_form');
             const formData = new FormData(form);
 
-            fetch('index.php?controller=EventRegistration&action=saveConfig', {
+            fetch('index.php?controller=Eventregistration&action=saveConfig', {
                 method: 'POST',
                 headers: { 'X-Requested-With': 'XMLHttpRequest' },
                 body: formData
@@ -89,7 +89,7 @@
                 window.eventRegApp = new MagixAjaxManager(
                     'magix-eventreg-app',    // ID du conteneur
                     'magix-eventreg-tab',    // ID de l'onglet
-                    'EventRegistration',     // Nom du contrôleur PHP
+                    'Eventregistration',     // Nom du contrôleur PHP
                     'eventreg',              // Préfixe générique
                     'registration'           // ID Key (id_registration)
                 );

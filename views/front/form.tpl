@@ -24,7 +24,7 @@
                 </p>
 
                 {*  On utilise validate_form pour que votre classe globale s'occupe de tout *}
-                <form id="eventRegForm" class="validate_form" method="post" action="{$base_url}{$current_lang.iso_lang}/eventregistration/registerFrontend">
+                <form id="eventRegForm" class="validate_form" method="post" action="{$base_url}{$current_lang.iso_lang}/Eventregistration/registerfrontend">
                     <input type="hidden" name="hashtoken" value="{$event_token}">
                     <input type="hidden" name="id_news" value="{$event_id_news}">
 

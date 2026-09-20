@@ -1,12 +1,12 @@
 <?php
 declare(strict_types=1);
 
-namespace Plugins\EventRegistration;
+namespace Plugins\Eventregistration;
 
 use App\Component\Hook\HookManager;
 use Magepattern\Component\Tool\SmartyTool;
-use Plugins\EventRegistration\db\EventAdminDb;
-use Plugins\EventRegistration\db\EventFrontDb;
+use Plugins\Eventregistration\db\EventAdminDb;
+use Plugins\Eventregistration\db\EventFrontDb;
 
 class Boot
 {
@@ -16,13 +16,13 @@ class Boot
         $idKey = 'id_news';
 
         // --- BACKEND : Injection de l'onglet dans l'administration des News ---
-        HookManager::register("{$module}_edit_tab", 'EventRegistration', function(array $params) {
+        HookManager::register("{$module}_edit_tab", 'Eventregistration', function(array $params) {
             $smarty = SmartyTool::getInstance('admin');
-            $file = ROOT_DIR . 'plugins' . DS . 'EventRegistration' . DS . 'views' . DS . 'admin' . DS . 'hooks' . DS . 'tab_button.tpl';
+            $file = ROOT_DIR . 'plugins' . DS . 'Eventregistration' . DS . 'views' . DS . 'admin' . DS . 'hooks' . DS . 'tab_button.tpl';
             return $smarty->templateExists($file) ? $smarty->fetch($file) : '';
         });
 
-        HookManager::register("{$module}_edit_content", 'EventRegistration', function(array $params) use ($idKey) {
+        HookManager::register("{$module}_edit_content", 'Eventregistration', function(array $params) use ($idKey) {
             $smarty = SmartyTool::getInstance('admin');
             $idNews = (int)($params[$idKey] ?? 0);
 
@@ -35,12 +35,12 @@ class Boot
                 'hashtoken'    => $smarty->getTemplateVars('hashtoken')
             ]);
 
-            $file = ROOT_DIR . 'plugins' . DS . 'EventRegistration' . DS . 'views' . DS . 'admin' . DS . 'hooks' . DS . 'tab_content.tpl';
+            $file = ROOT_DIR . 'plugins' . DS . 'Eventregistration' . DS . 'views' . DS . 'admin' . DS . 'hooks' . DS . 'tab_content.tpl';
             return $smarty->templateExists($file) ? $smarty->fetch($file) : '';
         });
 
         // --- FRONTEND : Injection du formulaire sur le site public ---
-        HookManager::register('displayNewsBottom', 'EventRegistration', ['\Plugins\EventRegistration\src\FrontendController', 'renderForm']);
+        HookManager::register('displayNewsBottom', 'Eventregistration', ['\Plugins\Eventregistration\src\FrontendController', 'renderForm']);
 
         // --- OPTIMISATION : Contrôle conditionnel du Google reCAPTCHA ---
         if (class_exists('\Plugins\GoogleRecaptcha\src\FrontendController')) {
